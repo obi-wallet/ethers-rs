@@ -75,7 +75,6 @@ impl<D: PrehashSigner<(RecoverableSignature, RecoveryId)>> Wallet<D> {
     }
 }
 
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 impl<D: Sync + Send + PrehashSigner<(RecoverableSignature, RecoveryId)>> Signer for Wallet<D> {
     type Error = WalletError;
 
