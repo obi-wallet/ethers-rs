@@ -1,37 +1,21 @@
 //! Specific helper functions for loading an offline K256 Private Key stored on disk
 use super::Wallet;
 
-use crate::wallet::mnemonic::MnemonicBuilderError;
-use coins_bip32::Bip32Error;
-use coins_bip39::MnemonicError;
-#[cfg(not(target_arch = "wasm32"))]
-use elliptic_curve::rand_core;
-#[cfg(not(target_arch = "wasm32"))]
-use eth_keystore::KeystoreError;
-use ethers_core::{
+extern crate ethers_core;
+use self::ethers_core::{
     k256::ecdsa::{self, SigningKey},
     rand::{CryptoRng, Rng},
-    utils::secret_key_to_address,
+    utils::secret_key_to_address
 };
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
-use std::str::FromStr;
-use thiserror::Error;
+use std::{str::FromStr, convert::TryFrom};
+extern crate thiserror;
+use self::thiserror::Error;
 
 #[derive(Error, Debug)]
 /// Error thrown by the Wallet module
 pub enum WalletError {
-    /// Error propagated from the BIP-32 crate
-    #[error(transparent)]
-    Bip32Error(#[from] Bip32Error),
-    /// Error propagated from the BIP-39 crate
-    #[error(transparent)]
-    Bip39Error(#[from] MnemonicError),
-    /// Underlying eth keystore error
-    #[cfg(not(target_arch = "wasm32"))]
-    #[error(transparent)]
-    EthKeystoreError(#[from] KeystoreError),
-    /// Error propagated from k256's ECDSA module
     #[error(transparent)]
     EcdsaError(#[from] ecdsa::Error),
     /// Error propagated from the hex crate.
@@ -40,50 +24,12 @@ pub enum WalletError {
     /// Error propagated by IO operations
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    /// Error propagated from the mnemonic builder module.
-    #[error(transparent)]
-    MnemonicBuilderError(#[from] MnemonicBuilderError),
     /// Error type from Eip712Error message
     #[error("error encoding eip712 struct: {0:?}")]
     Eip712Error(String),
 }
 
 impl Wallet<SigningKey> {
-    /// Creates a new random encrypted JSON with the provided password and stores it in the
-    /// provided directory. Returns a tuple (Wallet, String) of the wallet instance for the
-    /// keystore with its random UUID. Accepts an optional name for the keystore file. If `None`,
-    /// the keystore is stored as the stringified UUID.
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn new_keystore<P, R, S>(
-        dir: P,
-        rng: &mut R,
-        password: S,
-        name: Option<&str>,
-    ) -> Result<(Self, String), WalletError>
-    where
-        P: AsRef<Path>,
-        R: Rng + CryptoRng + rand_core::CryptoRng,
-        S: AsRef<[u8]>,
-    {
-        let (secret, uuid) = eth_keystore::new(dir, rng, password, name)?;
-        let signer = SigningKey::from_bytes(secret.as_slice().into())?;
-        let address = secret_key_to_address(&signer);
-        Ok((Self { signer, address, chain_id: 1 }, uuid))
-    }
-
-    /// Decrypts an encrypted JSON from the provided path to construct a Wallet instance
-    #[cfg(not(target_arch = "wasm32"))]
-    pub fn decrypt_keystore<P, S>(keypath: P, password: S) -> Result<Self, WalletError>
-    where
-        P: AsRef<Path>,
-        S: AsRef<[u8]>,
-    {
-        let secret = eth_keystore::decrypt_key(keypath, password)?;
-        let signer = SigningKey::from_bytes(secret.as_slice().into())?;
-        let address = secret_key_to_address(&signer);
-        Ok(Self { signer, address, chain_id: 1 })
-    }
-
     /// Creates a new random keypair seeded with the provided RNG
     pub fn new<R: Rng + CryptoRng>(rng: &mut R) -> Self {
         let signer = SigningKey::random(rng);
@@ -163,8 +109,8 @@ impl TryFrom<String> for Wallet<SigningKey> {
 mod tests {
     use super::*;
     use crate::{LocalWallet, Signer};
-    use ethers_core::types::Address;
-    use tempfile::tempdir;
+    extern crate ethabi;
+    use self::ethabi::ethereum_types::Address;
 
     #[test]
     fn parse_pk() {
@@ -220,47 +166,4 @@ mod tests {
         assert_eq!(wallet.signer, wallet_from_bytes.signer);
     }
 
-    #[test]
-    fn key_from_str() {
-        let wallet: Wallet<SigningKey> =
-            "0000000000000000000000000000000000000000000000000000000000000001".parse().unwrap();
-
-        // Check FromStr and `0x`
-        let wallet_0x: Wallet<SigningKey> =
-            "0x0000000000000000000000000000000000000000000000000000000000000001".parse().unwrap();
-        assert_eq!(wallet.address, wallet_0x.address);
-        assert_eq!(wallet.chain_id, wallet_0x.chain_id);
-        assert_eq!(wallet.signer, wallet_0x.signer);
-
-        // Check FromStr and `0X`
-        let wallet_0x_cap: Wallet<SigningKey> =
-            "0X0000000000000000000000000000000000000000000000000000000000000001".parse().unwrap();
-        assert_eq!(wallet.address, wallet_0x_cap.address);
-        assert_eq!(wallet.chain_id, wallet_0x_cap.chain_id);
-        assert_eq!(wallet.signer, wallet_0x_cap.signer);
-
-        // Check TryFrom<&str>
-        let wallet_0x_tryfrom_str: Wallet<SigningKey> =
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-                .try_into()
-                .unwrap();
-        assert_eq!(wallet.address, wallet_0x_tryfrom_str.address);
-        assert_eq!(wallet.chain_id, wallet_0x_tryfrom_str.chain_id);
-        assert_eq!(wallet.signer, wallet_0x_tryfrom_str.signer);
-
-        // Check TryFrom<String>
-        let wallet_0x_tryfrom_string: Wallet<SigningKey> =
-            "0x0000000000000000000000000000000000000000000000000000000000000001"
-                .to_string()
-                .try_into()
-                .unwrap();
-        assert_eq!(wallet.address, wallet_0x_tryfrom_string.address);
-        assert_eq!(wallet.chain_id, wallet_0x_tryfrom_string.chain_id);
-        assert_eq!(wallet.signer, wallet_0x_tryfrom_string.signer);
-
-        // Must fail because of `0z`
-        "0z0000000000000000000000000000000000000000000000000000000000000001"
-            .parse::<Wallet<SigningKey>>()
-            .unwrap_err();
-    }
 }

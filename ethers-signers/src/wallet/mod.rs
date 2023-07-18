@@ -1,26 +1,25 @@
-mod mnemonic;
-pub use mnemonic::{MnemonicBuilder, MnemonicBuilderError};
-
 mod private_key;
-pub use private_key::WalletError;
+pub use self::private_key::WalletError;
 
 #[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
 mod yubi;
 
 use crate::{to_eip155_v, Signer};
-use ethers_core::{
+extern crate ethers_core;
+use self::ethers_core::{
     k256::{
         ecdsa::{signature::hazmat::PrehashSigner, RecoveryId, Signature as RecoverableSignature},
         elliptic_curve::FieldBytes,
         Secp256k1,
     },
-    types::{
-        Address, Signature, H256, U256,
-    },
     utils::hash_message,
+    types::Signature,
+};
+extern crate ethabi;
+use self::ethabi::ethereum_types::{
+    Address, H256, U256,
 };
 
-use async_trait::async_trait;
 use std::fmt;
 
 /// An Ethereum private-public key pair which can be used for signing messages.
@@ -77,11 +76,10 @@ impl<D: PrehashSigner<(RecoverableSignature, RecoveryId)>> Wallet<D> {
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl<D: Sync + Send + PrehashSigner<(RecoverableSignature, RecoveryId)>> Signer for Wallet<D> {
     type Error = WalletError;
 
-    async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
+    fn sign_message<S: Send + Sync + AsRef<[u8]>>(
         &self,
         message: S,
     ) -> Result<Signature, Self::Error> {

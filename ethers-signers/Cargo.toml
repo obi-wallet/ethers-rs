@@ -1,19 +1,9 @@
 [package]
+version = "2.0.8"
 name = "ethers-signers"
 authors = ["Georgios Konstantopoulos <me@gakonst.com>"]
 readme = "README.md"
 description = "A unified interface for locally signing Ethereum transactions"
-
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-documentation.workspace = true
-repository.workspace = true
-homepage.workspace = true
-categories.workspace = true
-keywords.workspace = true
-exclude.workspace = true
 
 [package.metadata.docs.rs]
 all-features = true
@@ -23,26 +13,13 @@ rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [dependencies]
-ethers-core.workspace = true
+ethers-core = { path = "../ethers-core" }
+ethabi = { version = "18.0.0", default-features = false, features = ["full-serde", "rlp"] }
 
 # crypto
-coins-bip32 = "0.8.3"
-coins-bip39 = "0.8.6"
-elliptic-curve.workspace = true
-sha2.workspace = true
-rand.workspace = true
+elliptic-curve = { version = "0.13.4", default-features = false }
+sha2 = { version = "0.10.6", default-features = false }
+thiserror = { version = "1.0" }
 
 # misc
-thiserror.workspace = true
-tracing.workspace = true
-async-trait.workspace = true
-hex.workspace = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-eth-keystore = "0.5.0"
-home = { workspace = true, optional = true }
-
-[dev-dependencies]
-serde_json.workspace = true
-tempfile.workspace = true
-tracing-subscriber.workspace = true
+hex = "0.4"

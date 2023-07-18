@@ -1,10 +1,11 @@
 // Code adapted from: https://github.com/tomusdrw/rust-web3/blob/master/src/api/accounts.rs
 use crate::{
-    types::{Address, H256, U256},
     utils::hash_message,
 };
-use elliptic_curve::{consts::U32, sec1::ToEncodedPoint};
-use generic_array::GenericArray;
+extern crate ethabi;
+use self::ethabi::ethereum_types::{Address, H256, U256};
+use k256::elliptic_curve::{consts::U32, sec1::ToEncodedPoint};
+use k256::sha2::digest::generic_array::GenericArray;
 use k256::{
     ecdsa::{
         Error as K256SignatureError, RecoveryId, Signature as RecoverableSignature,
@@ -12,10 +13,13 @@ use k256::{
     },
     PublicKey as K256PublicKey,
 };
-use open_fastrlp::Decodable;
-use serde::{Deserialize, Serialize};
+extern crate open_fastrlp;
+use self::open_fastrlp::Decodable;
+extern crate serde;
+use self::serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, fmt, str::FromStr};
-use thiserror::Error;
+extern crate thiserror;
+use self::thiserror::Error;
 
 /// An error involving a signature.
 #[derive(Debug, Error)]

@@ -1,7 +1,8 @@
 //! Various utilities for manipulating Ethereum related data.
-
-use ethabi::ethereum_types::H256;
-use tiny_keccak::{Hasher, Keccak};
+extern crate tiny_keccak;
+extern crate ethabi;
+use self::ethabi::ethereum_types::H256;
+use self::tiny_keccak::{Hasher, Keccak};
 
 /// Hash a message according to [EIP-191] (version `0x01`).
 ///

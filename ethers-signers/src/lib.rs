@@ -3,10 +3,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod wallet;
-pub use wallet::{MnemonicBuilder, Wallet, WalletError};
-
-/// Re-export the BIP-32 crate so that wordlists can be accessed conveniently.
-pub use coins_bip39;
+pub use wallet::{Wallet, WalletError};
 
 /// A wallet instantiated with a locally stored private key
 pub type LocalWallet = Wallet<ethers_core::k256::ecdsa::SigningKey>;
@@ -39,11 +36,16 @@ mod aws;
 #[cfg(feature = "aws")]
 pub use aws::{AwsSigner, AwsSignerError};
 
-use async_trait::async_trait;
-use ethers_core::types::{
-    Address, Signature,
+extern crate ethers_core;
+use self::ethers_core::types::{
+    Signature,
 };
 use std::error::Error;
+
+extern crate ethabi;
+use self::ethabi::ethereum_types::{
+    Address
+};
 
 /// Applies [EIP155](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md)
 pub fn to_eip155_v<T: Into<u8>>(recovery_id: T, chain_id: u64) -> u64 {
@@ -53,12 +55,10 @@ pub fn to_eip155_v<T: Into<u8>>(recovery_id: T, chain_id: u64) -> u64 {
 /// Trait for signing transactions and messages
 ///
 /// Implement this trait to support different signing modes, e.g. Ledger, hosted etc.
-#[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
-#[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait Signer: std::fmt::Debug + Send + Sync {
     type Error: Error + Send + Sync;
     /// Signs the hash of the provided message after prefixing it
-    async fn sign_message<S: Send + Sync + AsRef<[u8]>>(
+    fn sign_message<S: Send + Sync + AsRef<[u8]>>(
         &self,
         message: S,
     ) -> Result<Signature, Self::Error>;
