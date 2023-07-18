@@ -113,20 +113,7 @@ impl Signature {
         let hash = crate::utils::keccak256(&public_key[1..]);
         Ok(Address::from_slice(&hash[12..]))
     }
-
-    /// Recovers the ethereum address which was used to sign a given EIP712
-    /// typed data payload.
-    ///
-    /// Recovery signature data uses 'Electrum' notation, this means the `v`
-    /// value is expected to be either `27` or `28`.
-    pub fn recover_typed_data<T>(&self, payload: &T) -> Result<Address, SignatureError>
-    where
-        T: super::transaction::eip712::Eip712,
-    {
-        let encoded = payload.encode_eip712().map_err(|_| SignatureError::RecoveryError)?;
-        self.recover(encoded)
-    }
-
+    
     /// Retrieves the recovery signature.
     fn as_signature(&self) -> Result<(RecoverableSignature, RecoveryId), SignatureError> {
         let recovery_id = self.recovery_id()?;

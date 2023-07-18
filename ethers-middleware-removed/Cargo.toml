@@ -1,8 +1,8 @@
 [package]
-name = "ethers-signers"
+name = "ethers-middleware"
 authors = ["Georgios Konstantopoulos <me@gakonst.com>"]
 readme = "README.md"
-description = "A unified interface for locally signing Ethereum transactions"
+description = "Middleware implementations for the ethers-rs crate"
 
 version.workspace = true
 edition.workspace = true
@@ -24,25 +24,23 @@ all-features = true
 
 [dependencies]
 ethers-core.workspace = true
+ethers-signers.workspace = true
 
-# crypto
-coins-bip32 = "0.8.3"
-coins-bip39 = "0.8.6"
-elliptic-curve.workspace = true
-sha2.workspace = true
-rand.workspace = true
-
-# misc
+async-trait.workspace = true
+auto_impl.workspace = true
+serde.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
-async-trait.workspace = true
-hex.workspace = true
+tracing-futures.workspace = true
+instant.workspace = true
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-eth-keystore = "0.5.0"
-home = { workspace = true, optional = true }
+serde_json.workspace = true
 
 [dev-dependencies]
-serde_json.workspace = true
-tempfile.workspace = true
-tracing-subscriber.workspace = true
+
+hex.workspace = true
+rand.workspace = true
+once_cell.workspace = true
+
+[features]
+default = []

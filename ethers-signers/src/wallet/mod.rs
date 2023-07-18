@@ -15,7 +15,6 @@ use ethers_core::{
         Secp256k1,
     },
     types::{
-        transaction::{eip2718::TypedTransaction, eip712::Eip712},
         Address, Signature, H256, U256,
     },
     utils::hash_message,
@@ -92,25 +91,6 @@ impl<D: Sync + Send + PrehashSigner<(RecoverableSignature, RecoveryId)>> Signer 
         self.sign_hash(message_hash)
     }
 
-    async fn sign_transaction(&self, tx: &TypedTransaction) -> Result<Signature, Self::Error> {
-        let mut tx_with_chain = tx.clone();
-        if tx_with_chain.chain_id().is_none() {
-            // in the case we don't have a chain_id, let's use the signer chain id instead
-            tx_with_chain.set_chain_id(self.chain_id);
-        }
-        self.sign_transaction_sync(&tx_with_chain)
-    }
-
-    async fn sign_typed_data<T: Eip712 + Send + Sync>(
-        &self,
-        payload: &T,
-    ) -> Result<Signature, Self::Error> {
-        let encoded =
-            payload.encode_eip712().map_err(|e| Self::Error::Eip712Error(e.to_string()))?;
-
-        self.sign_hash(H256::from(encoded))
-    }
-
     fn address(&self) -> Address {
         self.address
     }
@@ -128,22 +108,6 @@ impl<D: Sync + Send + PrehashSigner<(RecoverableSignature, RecoveryId)>> Signer 
 }
 
 impl<D: PrehashSigner<(RecoverableSignature, RecoveryId)>> Wallet<D> {
-    /// Synchronously signs the provided transaction, normalizing the signature `v` value with
-    /// EIP-155 using the transaction's `chain_id`, or the signer's `chain_id` if the transaction
-    /// does not specify one.
-    pub fn sign_transaction_sync(&self, tx: &TypedTransaction) -> Result<Signature, WalletError> {
-        // rlp (for sighash) must have the same chain id as v in the signature
-        let chain_id = tx.chain_id().map(|id| id.as_u64()).unwrap_or(self.chain_id);
-        let mut tx = tx.clone();
-        tx.set_chain_id(chain_id);
-
-        let sighash = tx.sighash();
-        let mut sig = self.sign_hash(sighash)?;
-
-        // sign_hash sets `v` to recid + 27, so we need to subtract 27 before normalizing
-        sig.v = to_eip155_v(sig.v as u8 - 27, chain_id);
-        Ok(sig)
-    }
 
     /// Signs the provided hash.
     pub fn sign_hash(&self, hash: H256) -> Result<Signature, WalletError> {

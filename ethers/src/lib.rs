@@ -85,46 +85,21 @@
 #![doc(test(no_crate_inject, attr(deny(rust_2018_idioms), allow(dead_code, unused_variables))))]
 
 #[doc(inline)]
-pub use ethers_addressbook as addressbook;
-#[doc(inline)]
-pub use ethers_contract as contract;
-#[doc(inline)]
 pub use ethers_core as core;
 #[doc(inline)]
-pub use ethers_etherscan as etherscan;
-#[doc(inline)]
-pub use ethers_middleware as middleware;
-#[doc(inline)]
-pub use ethers_providers as providers;
-#[doc(inline)]
 pub use ethers_signers as signers;
-#[doc(inline)]
-#[cfg(feature = "ethers-solc")]
-pub use ethers_solc as solc;
 
 #[doc(inline)]
-pub use ethers_core::{abi, types, utils};
+pub use ethers_core::{types, utils};
 
 /// Easy imports of frequently used type definitions and traits.
 #[doc(hidden)]
 #[allow(unknown_lints, ambiguous_glob_reexports)]
 pub mod prelude {
-    pub use super::addressbook::contract;
-
-    pub use super::contract::*;
-
     pub use super::core::{types::*, *};
-
-    pub use super::etherscan::*;
-
-    pub use super::middleware::*;
-
-    pub use super::providers::*;
 
     pub use super::signers::*;
 
-    #[cfg(feature = "ethers-solc")]
-    pub use super::solc::*;
 }
 
 // For macro expansions only, not public API.

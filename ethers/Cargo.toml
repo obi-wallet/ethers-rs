@@ -23,74 +23,16 @@ rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
-default = ["abigen", "rustls"]
+default = []
 
 # workspace-wide features
-legacy = ["ethers-core/legacy", "ethers-contract/legacy"]
-celo = [
-    "ethers-contract/celo",
-    "ethers-core/celo",
-    "ethers-middleware/celo",
-    "ethers-providers/celo",
-    "ethers-signers/celo",
-    "legacy",
-]
-
-optimism = [
-    "ethers-core/optimism", 
-    "ethers-providers/optimism",
-    "ethers-signers/optimism",
-    "ethers-middleware/optimism",
-    "ethers-contract/optimism",
-]
-
-rustls = [
-    "ethers-contract/rustls",
-    "ethers-etherscan/rustls",
-    "ethers-middleware/rustls",
-    "ethers-providers/rustls",
-    "ethers-solc?/rustls",
-]
-openssl = [
-    "ethers-contract/openssl",
-    "ethers-etherscan/openssl",
-    "ethers-middleware/openssl",
-    "ethers-providers/openssl",
-    "ethers-solc?/openssl",
-]
-
-# ethers-providers
-ws = ["ethers-providers/ws"]
-legacy-ws = ["ethers-providers/legacy-ws"]
-ipc = ["ethers-providers/ipc"]
-dev-rpc = ["ethers-providers/dev-rpc"]
-
-# ethers-signers
-ledger = ["ethers-signers/ledger"]
-trezor = ["ethers-signers/trezor"]
-yubi = ["ethers-signers/yubi"]
-
-# ethers-contracts
-abigen = ["ethers-contract/abigen"]
-abigen-online = ["ethers-contract/abigen-online"]
-
-# ethers-solc
-ethers-solc = ["dep:ethers-solc", "ethers-etherscan/ethers-solc"]
-solc-full = ["ethers-solc?/full"]
-solc-tests = ["ethers-solc?/tests"]
+legacy = ["ethers-core/legacy"]
 
 # Deprecated
-abigen-offline = ["abigen"]
+abigen-offline = []
 eip712 = []
 solc-sha2-asm = []
 
 [dependencies]
-ethers-addressbook.workspace = true
-ethers-contract.workspace = true
 ethers-core.workspace = true
-ethers-etherscan.workspace = true
-ethers-middleware.workspace = true
-ethers-providers.workspace = true
 ethers-signers.workspace = true
-
-ethers-solc = { workspace = true, optional = true }
