@@ -15,7 +15,7 @@ pub use toolbox::*;
 
 /// Crate utilities and type aliases
 mod utils;
-pub use utils::{interval, maybe, EscalationPolicy};
+pub use utils::{maybe, EscalationPolicy};
 
 /// Errors
 mod errors;
@@ -24,7 +24,7 @@ pub use errors::{MiddlewareError, ProviderError, RpcError};
 mod stream;
 pub use futures_util::StreamExt;
 pub use stream::{
-    tx_stream::TransactionStream, FilterWatcher, DEFAULT_LOCAL_POLL_INTERVAL, DEFAULT_POLL_INTERVAL,
+    FilterWatcher, DEFAULT_LOCAL_POLL_INTERVAL, DEFAULT_POLL_INTERVAL,
 };
 
 mod middleware;

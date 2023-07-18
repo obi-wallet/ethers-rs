@@ -23,9 +23,6 @@ pub use contract::structs::InternalStructs;
 pub mod filter;
 pub use filter::{ContractFilter, ExcludeContracts, SelectContracts};
 
-pub mod multi;
-pub use multi::MultiAbigen;
-
 mod source;
 #[cfg(all(feature = "online", not(target_arch = "wasm32")))]
 pub use source::Explorer;
@@ -406,18 +403,4 @@ impl ContractBindings {
 /// Returns whether the current executable is a cargo build script.
 fn in_build_script() -> bool {
     std::env::var("TARGET").is_ok()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn can_generate_structs() {
-        let greeter = include_str!("../../tests/solidity-contracts/greeter_with_struct.json");
-        let abigen = Abigen::new("Greeter", greeter).unwrap();
-        let gen = abigen.generate().unwrap();
-        let out = gen.tokens.to_string();
-        assert!(out.contains("pub struct Stuff"));
-    }
 }

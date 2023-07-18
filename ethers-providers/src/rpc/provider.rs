@@ -1,14 +1,13 @@
 use ethers_core::types::SyncingStatus;
 
 use crate::{
-    call_raw::CallBuilder,
     errors::ProviderError,
     ext::{ens, erc},
     rpc::pubsub::{PubsubClient, SubscriptionStream},
     stream::{FilterWatcher, DEFAULT_LOCAL_POLL_INTERVAL, DEFAULT_POLL_INTERVAL},
     utils::maybe,
     Http as HttpProvider, JsonRpcClient, JsonRpcClientWrapper, LogQuery, MiddlewareError,
-    MockProvider, NodeInfo, PeerInfo, PendingTransaction, QuorumProvider, RwClient,
+    MockProvider, NodeInfo, PeerInfo, QuorumProvider, RwClient,
 };
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -200,44 +199,6 @@ impl<P: JsonRpcClient> Provider<P> {
                 self.request("eth_getBlockByNumber", [num, include_txs]).await?
             }
         })
-    }
-
-    /// Analogous to [`Middleware::call`], but returns a [`CallBuilder`] that can either be
-    /// `.await`d or used to override the parameters sent to `eth_call`.
-    ///
-    /// See the [`ethers_core::types::spoof`] for functions to construct state override
-    /// parameters.
-    ///
-    /// Note: this method _does not_ send a transaction from your account
-    ///
-    /// [`ethers_core::types::spoof`]: ethers_core::types::spoof
-    ///
-    /// # Example
-    ///
-    /// ```no_run
-    /// # use ethers_core::{
-    /// #     types::{Address, TransactionRequest, H256, spoof},
-    /// #     utils::{parse_ether, Geth},
-    /// # };
-    /// # use ethers_providers::{Provider, Http, Middleware, call_raw::RawCall};
-    /// # async fn foo() -> Result<(), Box<dyn std::error::Error>> {
-    /// let geth = Geth::new().spawn();
-    /// let provider = Provider::<Http>::try_from(geth.endpoint()).unwrap();
-    ///
-    /// let adr1: Address = "0x6fC21092DA55B392b045eD78F4732bff3C580e2c".parse()?;
-    /// let adr2: Address = "0x295a70b2de5e3953354a6a8344e616ed314d7251".parse()?;
-    /// let pay_amt = parse_ether(1u64)?;
-    ///
-    /// // Not enough ether to pay for the transaction
-    /// let tx = TransactionRequest::pay(adr2, pay_amt).from(adr1).into();
-    ///
-    /// // override the sender's balance for the call
-    /// let mut state = spoof::balance(adr1, pay_amt * 2);
-    /// provider.call_raw(&tx).state(&state).await?;
-    /// # Ok(()) }
-    /// ```
-    pub fn call_raw<'a>(&'a self, tx: &'a TypedTransaction) -> CallBuilder<'a, P> {
-        CallBuilder::new(self, tx)
     }
 }
 
@@ -548,27 +509,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
         self.request("eth_createAccessList", [tx, block]).await
     }
 
-    async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
-        &self,
-        tx: T,
-        block: Option<BlockId>,
-    ) -> Result<PendingTransaction<'_, P>, ProviderError> {
-        let mut tx = tx.into();
-        self.fill_transaction(&mut tx, block).await?;
-        let tx_hash = self.request("eth_sendTransaction", [tx]).await?;
-
-        Ok(PendingTransaction::new(tx_hash, self))
-    }
-
-    async fn send_raw_transaction<'a>(
-        &'a self,
-        tx: Bytes,
-    ) -> Result<PendingTransaction<'a, P>, ProviderError> {
-        let rlp = utils::serialize(&tx);
-        let tx_hash = self.request("eth_sendRawTransaction", [rlp]).await?;
-        Ok(PendingTransaction::new(tx_hash, self))
-    }
-
     async fn is_signer(&self) -> bool {
         match self.from {
             Some(sender) => self.sign(vec![], &sender).await.is_ok(),
@@ -611,30 +551,6 @@ impl<P: JsonRpcClient> Middleware for Provider<P> {
 
     fn get_logs_paginated<'a>(&'a self, filter: &Filter, page_size: u64) -> LogQuery<'a, P> {
         LogQuery::new(self, filter).with_page_size(page_size)
-    }
-
-    async fn watch<'a>(
-        &'a self,
-        filter: &Filter,
-    ) -> Result<FilterWatcher<'a, P, Log>, ProviderError> {
-        let id = self.new_filter(FilterKind::Logs(filter)).await?;
-        let filter = FilterWatcher::new(id, self).interval(self.get_interval());
-        Ok(filter)
-    }
-
-    async fn watch_blocks(&self) -> Result<FilterWatcher<'_, P, H256>, ProviderError> {
-        let id = self.new_filter(FilterKind::NewBlocks).await?;
-        let filter = FilterWatcher::new(id, self).interval(self.get_interval());
-        Ok(filter)
-    }
-
-    /// Streams pending transactions
-    async fn watch_pending_transactions(
-        &self,
-    ) -> Result<FilterWatcher<'_, P, H256>, ProviderError> {
-        let id = self.new_filter(FilterKind::PendingTransactions).await?;
-        let filter = FilterWatcher::new(id, self).interval(self.get_interval());
-        Ok(filter)
     }
 
     async fn new_filter(&self, filter: FilterKind<'_>) -> Result<U256, ProviderError> {
@@ -1266,20 +1182,6 @@ impl<P: JsonRpcClient> Provider<P> {
     }
 }
 
-#[cfg(all(feature = "ipc", any(unix, windows)))]
-impl Provider<crate::Ipc> {
-    #[cfg_attr(unix, doc = "Connects to the Unix socket at the provided path.")]
-    #[cfg_attr(windows, doc = "Connects to the named pipe at the provided path.\n")]
-    #[cfg_attr(
-        windows,
-        doc = r"Note: the path must be the fully qualified, like: `\\.\pipe\<name>`."
-    )]
-    pub async fn connect_ipc(path: impl AsRef<std::path::Path>) -> Result<Self, ProviderError> {
-        let ipc = crate::Ipc::connect(path).await?;
-        Ok(Self::new(ipc))
-    }
-}
-
 impl Provider<HttpProvider> {
     /// The Url to which requests are made
     pub fn url(&self) -> &Url {
@@ -1533,7 +1435,7 @@ mod tests {
             GethDebugBuiltInTracerConfig, GethDebugBuiltInTracerType, GethDebugTracerConfig,
             GethDebugTracerType, PreStateConfig, TransactionRequest, H256,
         },
-        utils::{Anvil, Genesis, Geth, GethInstance},
+        utils::{Anvil, Genesis},
     };
     use futures_util::StreamExt;
     use std::path::PathBuf;
@@ -1613,26 +1515,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[cfg_attr(feature = "celo", ignore)]
-    async fn test_new_block_filter() {
-        let num_blocks = 3;
-        let geth = Anvil::new().block_time(2u64).spawn();
-        let provider = Provider::<Http>::try_from(geth.endpoint())
-            .unwrap()
-            .interval(Duration::from_millis(1000));
-
-        let start_block = provider.get_block_number().await.unwrap();
-
-        let stream = provider.watch_blocks().await.unwrap().stream();
-
-        let hashes: Vec<H256> = stream.take(num_blocks).collect::<Vec<H256>>().await;
-        for (i, hash) in hashes.iter().enumerate() {
-            let block = provider.get_block(start_block + i as u64 + 1).await.unwrap().unwrap();
-            assert_eq!(*hash, block.hash.unwrap());
-        }
-    }
-
-    #[tokio::test]
     async fn test_is_signer() {
         use ethers_core::utils::Anvil;
         use std::str::FromStr;
@@ -1653,49 +1535,6 @@ mod tests {
         .unwrap()
         .with_sender(sender);
         assert!(!provider.is_signer().await);
-    }
-
-    #[tokio::test]
-    async fn test_new_pending_txs_filter() {
-        let num_txs = 5;
-
-        let geth = Anvil::new().block_time(2u64).spawn();
-        let provider = Provider::<Http>::try_from(geth.endpoint())
-            .unwrap()
-            .interval(Duration::from_millis(1000));
-        let accounts = provider.get_accounts().await.unwrap();
-
-        let stream = provider.watch_pending_transactions().await.unwrap().stream();
-
-        let mut tx_hashes = Vec::new();
-        let tx = TransactionRequest::new().from(accounts[0]).to(accounts[0]).value(1e18 as u64);
-
-        for _ in 0..num_txs {
-            tx_hashes.push(provider.send_transaction(tx.clone(), None).await.unwrap());
-        }
-
-        let hashes: Vec<H256> = stream.take(num_txs).collect::<Vec<H256>>().await;
-        assert_eq!(tx_hashes, hashes);
-    }
-
-    #[tokio::test]
-    async fn receipt_on_unmined_tx() {
-        use ethers_core::{
-            types::TransactionRequest,
-            utils::{parse_ether, Anvil},
-        };
-        let anvil = Anvil::new().block_time(2u64).spawn();
-        let provider = Provider::<Http>::try_from(anvil.endpoint()).unwrap();
-
-        let accounts = provider.get_accounts().await.unwrap();
-        let tx = TransactionRequest::pay(accounts[0], parse_ether(1u64).unwrap()).from(accounts[0]);
-        let pending_tx = provider.send_transaction(tx, None).await.unwrap();
-
-        assert!(provider.get_transaction_receipt(*pending_tx).await.unwrap().is_none());
-
-        let hash = *pending_tx;
-        let receipt = pending_tx.await.unwrap().unwrap();
-        assert_eq!(receipt.transaction_hash, hash);
     }
 
     #[tokio::test]
@@ -1927,113 +1766,4 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn geth_admin_nodeinfo() {
-        // we can't use the test provider because infura does not expose admin endpoints
-        let network = 1337u64;
-        let dir = tempfile::tempdir().unwrap();
-
-        let (geth, provider) =
-            spawn_geth_and_create_provider(network, Some(dir.path().into()), None);
-
-        let info = provider.node_info().await.unwrap();
-        drop(geth);
-
-        // make sure it is running eth
-        assert!(info.protocols.eth.is_some());
-
-        // check that the network id is correct
-        assert_eq!(info.protocols.eth.unwrap().network, network);
-
-        #[cfg(not(windows))]
-        dir.close().unwrap();
-    }
-
-    /// Spawn a new `GethInstance` without discovery and create a `Provider` for it.
-    ///
-    /// These will all use the same genesis config.
-    fn spawn_geth_and_create_provider(
-        chain_id: u64,
-        datadir: Option<PathBuf>,
-        genesis: Option<Genesis>,
-    ) -> (GethInstance, Provider<HttpProvider>) {
-        let geth = Geth::new().chain_id(chain_id).disable_discovery();
-
-        let geth = match genesis {
-            Some(genesis) => geth.genesis(genesis),
-            None => geth,
-        };
-
-        let geth = match datadir {
-            Some(dir) => geth.data_dir(dir),
-            None => geth,
-        }
-        .spawn();
-
-        let provider = Provider::try_from(geth.endpoint()).unwrap();
-        (geth, provider)
-    }
-
-    /// Spawn a set of [`GethInstance`]s with the list of given data directories and [`Provider`]s
-    /// for those [`GethInstance`]s without discovery, setting sequential ports for their p2p, rpc,
-    /// and authrpc ports.
-    fn spawn_geth_instances<const N: usize>(
-        datadirs: [PathBuf; N],
-        chain_id: u64,
-        genesis: Option<Genesis>,
-    ) -> [(GethInstance, Provider<HttpProvider>); N] {
-        datadirs.map(|dir| spawn_geth_and_create_provider(chain_id, Some(dir), genesis.clone()))
-    }
-
-    #[tokio::test]
-    #[cfg_attr(windows, ignore = "cannot spawn multiple geth instances")]
-    async fn add_second_geth_peer() {
-        // init each geth directory
-        let dir1 = tempfile::tempdir().unwrap();
-        let dir2 = tempfile::tempdir().unwrap();
-
-        // use the default genesis
-        let genesis = utils::Genesis::default();
-
-        // spawn the geths
-        let [(mut first_geth, first_peer), (second_geth, second_peer)] =
-            spawn_geth_instances([dir1.path().into(), dir2.path().into()], 1337, Some(genesis));
-
-        // get nodeinfo for each geth instance
-        let first_info = first_peer.node_info().await.unwrap();
-        let second_info = second_peer.node_info().await.unwrap();
-        let first_port = first_info.ports.listener;
-
-        // replace the ip in the enode by putting
-        let first_prefix = first_info.enode.split('@').collect::<Vec<&str>>();
-
-        // create enodes for each geth instance using each id and port
-        let first_enode = format!("{}@localhost:{}", first_prefix.first().unwrap(), first_port);
-
-        // add the first geth as a peer for the second
-        let res = second_peer.add_peer(first_enode).await.unwrap();
-        assert!(res);
-
-        // wait on the listening peer for an incoming connection
-        first_geth.wait_to_add_peer(second_info.id).unwrap();
-
-        // check that second_geth exists in the first_geth peer list
-        let peers = first_peer.peers().await.unwrap();
-
-        drop(first_geth);
-        drop(second_geth);
-
-        // check that the second peer is in the list (it uses an enr so the enr should be Some)
-        assert_eq!(peers.len(), 1);
-
-        let peer = peers.get(0).unwrap();
-        assert_eq!(H256::from_str(&peer.id).unwrap(), second_info.id);
-
-        // remove directories
-        #[cfg(not(windows))]
-        {
-            dir1.close().unwrap();
-            dir2.close().unwrap();
-        }
-    }
 }

@@ -2,7 +2,7 @@
 //! contract.
 
 use crate::spanned::Spanned;
-use ethers_contract_abigen::{multi::MultiExpansion, Abigen};
+use ethers_contract_abigen::Abigen;
 use proc_macro2::TokenStream;
 use std::collections::HashSet;
 use syn::{
@@ -18,24 +18,6 @@ use syn::{
 #[derive(Clone, Debug)]
 pub(crate) struct Contracts {
     pub(crate) inner: Vec<ContractArgs>,
-}
-
-impl Contracts {
-    pub(crate) fn expand(self) -> Result<TokenStream> {
-        let mut expansions = Vec::with_capacity(self.inner.len());
-
-        // expand all contracts
-        for contract in self.inner {
-            let span = contract.abi.span();
-            let contract = contract
-                .into_builder()
-                .and_then(|a| a.expand().map_err(|e| Error::new(span, e)))?;
-            expansions.push(contract);
-        }
-
-        // expand all contract expansions
-        Ok(MultiExpansion::new(expansions).expand_inplace())
-    }
 }
 
 impl Parse for Contracts {

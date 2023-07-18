@@ -4,12 +4,6 @@ mod ganache;
 #[cfg(not(target_arch = "wasm32"))]
 pub use ganache::{Ganache, GanacheInstance};
 
-/// Utilities for launching a go-ethereum dev-mode instance
-#[cfg(not(target_arch = "wasm32"))]
-mod geth;
-#[cfg(not(target_arch = "wasm32"))]
-pub use geth::{Geth, GethInstance};
-
 /// Utilities for working with a `genesis.json` and other chain config structs.
 mod genesis;
 pub use genesis::{ChainConfig, CliqueConfig, EthashConfig, Genesis, GenesisAccount};

@@ -1,5 +1,4 @@
 use crate::{
-    gas_oracle::{GasOracle, GasOracleMiddleware},
     NonceManagerMiddleware, SignerMiddleware,
 };
 use ethers_core::types::Address;
@@ -75,16 +74,6 @@ pub trait MiddlewareBuilder: Middleware + Sized + 'static {
     /// [`Address`](ethers_core::types::Address)
     fn nonce_manager(self, address: Address) -> NonceManagerMiddleware<Self> {
         NonceManagerMiddleware::new(self, address)
-    }
-
-    /// Wraps `self` inside a [`GasOracleMiddleware`](crate::gas_oracle::GasOracleMiddleware).
-    ///
-    /// [`GasOracle`](crate::gas_oracle::GasOracle)
-    fn gas_oracle<G>(self, gas_oracle: G) -> GasOracleMiddleware<Self, G>
-    where
-        G: GasOracle,
-    {
-        GasOracleMiddleware::new(self, gas_oracle)
     }
 }
 

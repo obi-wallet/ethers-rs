@@ -110,15 +110,6 @@ pub(crate) mod utils;
 ///     derives(serde::Deserialize, serde::Serialize);
 /// );
 /// ```
-#[proc_macro]
-pub fn abigen(input: TokenStream) -> TokenStream {
-    let contracts = parse_macro_input!(input as Contracts);
-    match contracts.expand() {
-        Ok(tokens) => tokens,
-        Err(err) => err.to_compile_error(),
-    }
-    .into()
-}
 
 /// Derives the [`AbiType`] and all `Tokenizable` traits for the labeled type.
 ///

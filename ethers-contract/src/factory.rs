@@ -8,7 +8,6 @@ use ethers_core::{
     },
 };
 use ethers_providers::{
-    call_raw::{CallBuilder, RawCall},
     Middleware,
 };
 
@@ -146,32 +145,6 @@ where
         self.deployer.call().await
     }
 
-    /// Returns a CallBuilder, which when awaited executes the deployment of this contract via
-    /// `eth_call`. This call resolves to the returned data which would have been stored at the
-    /// destination address had the deploy transaction been executed via `send()`.
-    ///
-    /// Note: this function _does not_ send a transaction from your account
-    pub fn call_raw(&self) -> CallBuilder<'_, M::Provider> {
-        self.deployer.call_raw()
-    }
-
-    /// Broadcasts the contract deployment transaction and after waiting for it to
-    /// be sufficiently confirmed (default: 1), it returns a new instance of the contract type at
-    /// the deployed contract's address.
-    pub async fn send(self) -> Result<C, ContractError<M>> {
-        let contract = self.deployer.send().await?;
-        Ok(C::from(contract))
-    }
-
-    /// Broadcasts the contract deployment transaction and after waiting for it to
-    /// be sufficiently confirmed (default: 1), it returns a new instance of the contract type at
-    /// the deployed contract's address and the corresponding
-    /// [`TransactionReceipt`](ethers_core::types::TransactionReceipt).
-    pub async fn send_with_receipt(self) -> Result<(C, TransactionReceipt), ContractError<M>> {
-        let (contract, receipt) = self.deployer.send_with_receipt().await?;
-        Ok((C::from(contract), receipt))
-    }
-
     /// Returns a reference to the deployer's ABI
     pub fn abi(&self) -> &Abi {
         self.deployer.abi()
@@ -253,50 +226,6 @@ where
 
         // TODO: It would be nice to handle reverts in a structured way.
         Ok(())
-    }
-
-    /// Returns a CallBuilder, which when awaited executes the deployment of this contract via
-    /// `eth_call`. This call resolves to the returned data which would have been stored at the
-    /// destination address had the deploy transaction been executed via `send()`.
-    ///
-    /// Note: this function _does not_ send a transaction from your account
-    pub fn call_raw(&self) -> CallBuilder<'_, M::Provider> {
-        self.client.borrow().provider().call_raw(&self.tx).block(self.block.into())
-    }
-
-    /// Broadcasts the contract deployment transaction and after waiting for it to
-    /// be sufficiently confirmed (default: 1), it returns a [`Contract`](crate::Contract)
-    /// struct at the deployed contract's address.
-    pub async fn send(self) -> Result<ContractInstance<B, M>, ContractError<M>> {
-        let (contract, _) = self.send_with_receipt().await?;
-        Ok(contract)
-    }
-
-    /// Broadcasts the contract deployment transaction and after waiting for it to
-    /// be sufficiently confirmed (default: 1), it returns a tuple with
-    /// the [`Contract`](crate::Contract) struct at the deployed contract's address
-    /// and the corresponding [`TransactionReceipt`].
-    pub async fn send_with_receipt(
-        self,
-    ) -> Result<(ContractInstance<B, M>, TransactionReceipt), ContractError<M>> {
-        let pending_tx = self
-            .client
-            .borrow()
-            .send_transaction(self.tx, Some(self.block.into()))
-            .await
-            .map_err(ContractError::from_middleware_error)?;
-
-        // TODO: Should this be calculated "optimistically" by address/nonce?
-        let receipt = pending_tx
-            .confirmations(self.confs)
-            .await
-            .ok()
-            .flatten()
-            .ok_or(ContractError::ContractNotDeployed)?;
-        let address = receipt.contract_address.ok_or(ContractError::ContractNotDeployed)?;
-
-        let contract = ContractInstance::new(address, self.abi, self.client);
-        Ok((contract, receipt))
     }
 
     /// Returns a reference to the deployer's ABI

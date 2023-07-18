@@ -1,6 +1,5 @@
 use crate::ProviderError;
 use ethers_core::types::U256;
-use futures_timer::Delay;
 use futures_util::{stream, FutureExt, StreamExt};
 use std::{future::Future, pin::Pin};
 
@@ -24,12 +23,4 @@ where
     } else {
         f.await
     }
-}
-
-// https://github.com/tomusdrw/rust-web3/blob/befcb2fb8f3ca0a43e3081f68886fa327e64c8e6/src/api/eth_filter.rs#L20
-/// Create a stream that emits items at a fixed interval. Used for rate control
-pub fn interval(
-    duration: instant::Duration,
-) -> impl futures_core::stream::Stream<Item = ()> + Send + Unpin {
-    stream::unfold((), move |_| Delay::new(duration).map(|_| Some(((), ())))).map(drop)
 }

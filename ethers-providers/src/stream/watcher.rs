@@ -1,5 +1,5 @@
 use crate::{
-    utils::{interval, PinBoxFut},
+    utils::PinBoxFut,
     JsonRpcClient, Middleware, Provider,
 };
 use ethers_core::types::U256;
@@ -47,22 +47,6 @@ where
     P: JsonRpcClient,
     R: Send + Sync + DeserializeOwned,
 {
-    /// Creates a new watcher with the provided factory and filter id.
-    pub fn new<T: Into<U256>>(id: T, provider: &'a Provider<P>) -> Self {
-        Self {
-            id: id.into(),
-            interval: Box::new(interval(DEFAULT_POLL_INTERVAL)),
-            state: FilterWatcherState::WaitForInterval,
-            provider,
-        }
-    }
-
-    /// Sets the stream's polling interval
-    pub fn interval(mut self, duration: Duration) -> Self {
-        self.interval = Box::new(interval(duration));
-        self
-    }
-
     /// Alias for Box::pin, must be called in order to pin the stream and be able
     /// to call `next` on it.
     pub fn stream(self) -> Pin<Box<Self>> {

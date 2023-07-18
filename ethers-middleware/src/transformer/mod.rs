@@ -1,6 +1,3 @@
-pub mod ds_proxy;
-pub use ds_proxy::DsProxy;
-
 mod middleware;
 pub use middleware::TransformerMiddleware;
 

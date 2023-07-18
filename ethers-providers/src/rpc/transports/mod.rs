@@ -4,11 +4,6 @@ pub use common::{Authorization, JsonRpcError};
 mod http;
 pub use self::http::{ClientError as HttpClientError, Provider as Http};
 
-#[cfg(all(feature = "ipc", any(unix, windows)))]
-mod ipc;
-#[cfg(all(feature = "ipc", any(unix, windows)))]
-pub use ipc::{Ipc, IpcError};
-
 mod quorum;
 pub use quorum::{JsonRpcClientWrapper, Quorum, QuorumError, QuorumProvider, WeightedProvider};
 

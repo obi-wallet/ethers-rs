@@ -618,17 +618,3 @@ fn _expand_struct<'a>(
 
     quote!(struct #name #fields)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn can_determine_structs() {
-        const VERIFIER_ABI: &str =
-            include_str!("../../../tests/solidity-contracts/verifier_abi.json");
-        let abi = serde_json::from_str::<RawAbi>(VERIFIER_ABI).unwrap();
-
-        let _internal = InternalStructs::new(abi);
-    }
-}

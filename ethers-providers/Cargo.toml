@@ -45,7 +45,6 @@ hashers = "1.0"
 # required for implementing stream on the filters
 futures-core.workspace = true
 futures-util.workspace = true
-futures-timer.workspace = true
 futures-channel = { workspace = true, optional = true }
 pin-project.workspace = true
 

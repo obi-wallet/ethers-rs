@@ -27,18 +27,6 @@ pub use log::{decode_logs, EthLogDecode, LogMeta};
 
 pub mod stream;
 
-#[cfg(feature = "abigen")]
-#[cfg_attr(docsrs, doc(cfg(feature = "abigen")))]
-mod multicall;
-#[cfg(feature = "abigen")]
-#[cfg_attr(docsrs, doc(cfg(feature = "abigen")))]
-pub use multicall::{
-    constants::{MULTICALL_ADDRESS, MULTICALL_SUPPORTED_CHAIN_IDS},
-    contract as multicall_contract,
-    error::MulticallError,
-    Call, Multicall, MulticallContract, MulticallVersion,
-};
-
 /// This module exposes low lever builder structures which are only consumed by the
 /// type-safe ABI bindings generators.
 #[doc(hidden)]
@@ -53,13 +41,13 @@ pub mod builders {
 #[cfg(feature = "abigen")]
 #[cfg_attr(docsrs, doc(cfg(feature = "abigen")))]
 pub use ethers_contract_abigen::{
-    Abigen, ContractFilter, ExcludeContracts, InternalStructs, MultiAbigen, SelectContracts,
+    Abigen, ContractFilter, ExcludeContracts, InternalStructs, SelectContracts,
 };
 
 #[cfg(feature = "abigen")]
 #[cfg_attr(docsrs, doc(cfg(feature = "abigen")))]
 pub use ethers_contract_derive::{
-    abigen, Eip712, EthAbiCodec, EthAbiType, EthCall, EthDisplay, EthError, EthEvent,
+    Eip712, EthAbiCodec, EthAbiType, EthCall, EthDisplay, EthError, EthEvent,
 };
 
 // Hide the Lazy re-export, it's just for convenience

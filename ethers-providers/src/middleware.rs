@@ -10,8 +10,8 @@ use std::fmt::Debug;
 use url::Url;
 
 use crate::{
-    erc, EscalatingPending, EscalationPolicy, FilterKind, FilterWatcher, JsonRpcClient, LogQuery,
-    MiddlewareError, NodeInfo, PeerInfo, PendingTransaction, Provider, ProviderError, PubsubClient,
+    erc, EscalationPolicy, FilterKind, FilterWatcher, JsonRpcClient, LogQuery,
+    MiddlewareError, NodeInfo, PeerInfo, Provider, ProviderError, PubsubClient,
     SubscriptionStream,
 };
 
@@ -83,7 +83,6 @@ use crate::{
 /// ```
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
-#[auto_impl(&, Box, Arc)]
 pub trait Middleware: Sync + Send + Debug {
     /// Error type returned by most operations
     type Error: MiddlewareError<Inner = <<Self as Middleware>::Inner as Middleware>::Error>;
@@ -146,64 +145,6 @@ pub trait Middleware: Sync + Send + Debug {
     /// Get the block number
     async fn get_block_number(&self) -> Result<U64, Self::Error> {
         self.inner().get_block_number().await.map_err(MiddlewareError::from_err)
-    }
-
-    /// Sends the transaction to the entire Ethereum network and returns the
-    /// transaction's hash. This will consume gas from the account that signed
-    /// the transaction. This call will fail if no signer is available, and the
-    /// RPC node does  not have an unlocked accounts
-    async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
-        &self,
-        tx: T,
-        block: Option<BlockId>,
-    ) -> Result<PendingTransaction<'_, Self::Provider>, Self::Error> {
-        self.inner().send_transaction(tx, block).await.map_err(MiddlewareError::from_err)
-    }
-
-    /// Send a transaction with a simple escalation policy.
-    ///
-    /// `policy` should be a boxed function that maps `original_gas_price`
-    /// and `number_of_previous_escalations` -> `new_gas_price`.
-    ///
-    /// e.g. `Box::new(|start, escalation_index| start * 1250.pow(escalations) /
-    /// 1000.pow(escalations))`
-    async fn send_escalating<'a>(
-        &'a self,
-        tx: &TypedTransaction,
-        escalations: usize,
-        policy: EscalationPolicy,
-    ) -> Result<EscalatingPending<'a, Self::Provider>, Self::Error> {
-        let mut original = tx.clone();
-        self.fill_transaction(&mut original, None).await?;
-
-        // set the nonce, if no nonce is found
-        if original.nonce().is_none() {
-            let nonce =
-                self.get_transaction_count(tx.from().copied().unwrap_or_default(), None).await?;
-            original.set_nonce(nonce);
-        }
-
-        let gas_price = original.gas_price().expect("filled");
-        let sign_futs: Vec<_> = (0..escalations)
-            .map(|i| {
-                let new_price = policy(gas_price, i);
-                let mut r = original.clone();
-                r.set_gas_price(new_price);
-                r
-            })
-            .map(|req| async move {
-                self.sign_transaction(&req, self.default_sender().unwrap_or_default())
-                    .await
-                    .map(|sig| req.rlp_signed(&sig))
-            })
-            .collect();
-
-        // we reverse for convenience. Ensuring that we can always just
-        // `pop()` the next tx off the back later
-        let mut signed = join_all(sign_futs).await.into_iter().collect::<Result<Vec<_>, _>>()?;
-        signed.reverse();
-
-        Ok(EscalatingPending::new(self.provider(), signed))
     }
 
     ////// Ethereum Naming Service
@@ -441,15 +382,6 @@ pub trait Middleware: Sync + Send + Debug {
     /// Gets the accounts on the node
     async fn get_accounts(&self) -> Result<Vec<Address>, Self::Error> {
         self.inner().get_accounts().await.map_err(MiddlewareError::from_err)
-    }
-
-    /// Send the raw RLP encoded transaction to the entire Ethereum network and returns the
-    /// transaction's hash This will consume gas from the account that signed the transaction.
-    async fn send_raw_transaction<'a>(
-        &'a self,
-        tx: Bytes,
-    ) -> Result<PendingTransaction<'a, Self::Provider>, Self::Error> {
-        self.inner().send_raw_transaction(tx).await.map_err(MiddlewareError::from_err)
     }
 
     /// This returns true if either the middleware stack contains a `SignerMiddleware`, or the

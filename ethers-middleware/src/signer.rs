@@ -2,7 +2,7 @@ use ethers_core::types::{
     transaction::{eip2718::TypedTransaction, eip2930::AccessListWithGasUsed},
     Address, BlockId, Bytes, Chain, Signature, TransactionRequest, U256,
 };
-use ethers_providers::{maybe, Middleware, MiddlewareError, PendingTransaction};
+use ethers_providers::{maybe, Middleware, MiddlewareError};
 use ethers_signers::Signer;
 use std::convert::TryFrom;
 
@@ -282,39 +282,6 @@ where
         Ok(())
     }
 
-    /// Signs and broadcasts the transaction. The optional parameter `block` can be passed so that
-    /// gas cost and nonce calculations take it into account. For simple transactions this can be
-    /// left to `None`.
-    async fn send_transaction<T: Into<TypedTransaction> + Send + Sync>(
-        &self,
-        tx: T,
-        block: Option<BlockId>,
-    ) -> Result<PendingTransaction<'_, Self::Provider>, Self::Error> {
-        let mut tx = tx.into();
-
-        // fill any missing fields
-        self.fill_transaction(&mut tx, block).await?;
-
-        // If the from address is set and is not our signer, delegate to inner
-        if tx.from().is_some() && tx.from() != Some(&self.address()) {
-            return self
-                .inner
-                .send_transaction(tx, block)
-                .await
-                .map_err(SignerMiddlewareError::MiddlewareError)
-        }
-
-        // if we have a nonce manager set, we should try handling the result in
-        // case there was a nonce mismatch
-        let signed_tx = self.sign_transaction(tx).await?;
-
-        // Submit the raw transaction
-        self.inner
-            .send_raw_transaction(signed_tx)
-            .await
-            .map_err(SignerMiddlewareError::MiddlewareError)
-    }
-
     /// Signs a message with the internal signer, or if none is present it will make a call to
     /// the connected node's `eth_call` API.
     async fn sign<T: Into<Bytes> + Send + Sync>(
@@ -485,48 +452,6 @@ mod tests {
         let signer = client.signer();
         let signer_chainid = signer.chain_id();
         assert_eq!(chain_id.as_u64(), signer_chainid);
-    }
-
-    #[tokio::test]
-    async fn handles_tx_from_field() {
-        let anvil = Anvil::new().spawn();
-        let acc = anvil.addresses()[0];
-        let provider = Provider::try_from(anvil.endpoint()).unwrap();
-        let key = LocalWallet::new(&mut rand::thread_rng()).with_chain_id(1u32);
-        provider
-            .send_transaction(
-                TransactionRequest::pay(key.address(), utils::parse_ether(1u64).unwrap()).from(acc),
-                None,
-            )
-            .await
-            .unwrap()
-            .await
-            .unwrap()
-            .unwrap();
-        let client = SignerMiddleware::new_with_provider_chain(provider, key).await.unwrap();
-
-        let request = TransactionRequest::new();
-
-        // signing a TransactionRequest with a from field of None should yield
-        // a signed transaction from the signer address
-        let request_from_none = request.clone();
-        let hash = *client.send_transaction(request_from_none, None).await.unwrap();
-        let tx = client.get_transaction(hash).await.unwrap().unwrap();
-        assert_eq!(tx.from, client.address());
-
-        // signing a TransactionRequest with the signer as the from address
-        // should yield a signed transaction from the signer
-        let request_from_signer = request.clone().from(client.address());
-        let hash = *client.send_transaction(request_from_signer, None).await.unwrap();
-        let tx = client.get_transaction(hash).await.unwrap().unwrap();
-        assert_eq!(tx.from, client.address());
-
-        // signing a TransactionRequest with a from address that is not the
-        // signer should result in the default anvil account being used
-        let request_from_other = request.from(acc);
-        let hash = *client.send_transaction(request_from_other, None).await.unwrap();
-        let tx = client.get_transaction(hash).await.unwrap().unwrap();
-        assert_eq!(tx.from, acc);
     }
 
     #[tokio::test]
