@@ -4,7 +4,6 @@ use super::Wallet;
 extern crate ethers_core;
 use self::ethers_core::{
     k256::ecdsa::{self, SigningKey},
-    rand::{CryptoRng, Rng},
     utils::secret_key_to_address
 };
 #[cfg(not(target_arch = "wasm32"))]
@@ -30,13 +29,6 @@ pub enum WalletError {
 }
 
 impl Wallet<SigningKey> {
-    /// Creates a new random keypair seeded with the provided RNG
-    pub fn new<R: Rng + CryptoRng>(rng: &mut R) -> Self {
-        let signer = SigningKey::random(rng);
-        let address = secret_key_to_address(&signer);
-        Self { signer, address, chain_id: 1 }
-    }
-
     /// Creates a new Wallet instance from a raw scalar value (big endian).
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, WalletError> {
         let signer = SigningKey::from_bytes(bytes.into())?;
