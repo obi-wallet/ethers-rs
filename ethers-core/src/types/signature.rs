@@ -1,15 +1,12 @@
 // Code adapted from: https://github.com/tomusdrw/rust-web3/blob/master/src/api/accounts.rs
-use crate::{
-    utils::hash_message,
-};
+use crate::utils::hash_message;
 extern crate ethabi;
 use self::ethabi::ethereum_types::{Address, H256, U256};
 use k256::elliptic_curve::{consts::U32, sec1::ToEncodedPoint};
 use k256::sha2::digest::generic_array::GenericArray;
 use k256::{
     ecdsa::{
-        RecoveryId, Signature as RecoverableSignature,
-        Signature as K256Signature, VerifyingKey,
+        RecoveryId, Signature as RecoverableSignature, Signature as K256Signature, VerifyingKey,
     },
     PublicKey as K256PublicKey,
 };
@@ -82,7 +79,7 @@ impl Signature {
         let address = address.into();
         let recovered = self.recover(message)?;
         if recovered != address {
-            return Err(SignatureError::VerificationError(address, recovered))
+            return Err(SignatureError::VerificationError(address, recovered));
         }
 
         Ok(())
@@ -107,9 +104,8 @@ impl Signature {
             message_hash.as_ref(),
             &recoverable_sig,
             recovery_id,
-        ).map_err(|e| {
-            SignatureError::K256Error(e.to_string())
-        })?;
+        )
+        .map_err(|e| SignatureError::K256Error(e.to_string()))?;
 
         let public_key = K256PublicKey::from(&verify_key);
         let public_key = public_key.to_encoded_point(/* compress = */ false);
@@ -118,7 +114,7 @@ impl Signature {
         let hash = crate::utils::keccak256(&public_key[1..]);
         Ok(Address::from_slice(&hash[12..]))
     }
-    
+
     /// Retrieves the recovery signature.
     fn as_signature(&self) -> Result<(RecoverableSignature, RecoveryId), SignatureError> {
         let recovery_id = self.recovery_id()?;
@@ -130,9 +126,7 @@ impl Signature {
             let gar: &GenericArray<u8, U32> = GenericArray::from_slice(&r_bytes);
             let gas: &GenericArray<u8, U32> = GenericArray::from_slice(&s_bytes);
             K256Signature::from_scalars(*gar, *gas)
-            .map_err(|e| {
-                SignatureError::K256Error(e.to_string())
-            })?
+                .map_err(|e| SignatureError::K256Error(e.to_string()))?
         };
 
         Ok((signature, recovery_id))
@@ -193,7 +187,7 @@ impl<'a> TryFrom<&'a [u8]> for Signature {
     /// and the final byte is the `v` value in 'Electrum' notation.
     fn try_from(bytes: &'a [u8]) -> Result<Self, Self::Error> {
         if bytes.len() != 65 {
-            return Err(SignatureError::InvalidLength(bytes.len()))
+            return Err(SignatureError::InvalidLength(bytes.len()));
         }
 
         let v = bytes[64];

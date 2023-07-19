@@ -8,8 +8,8 @@ extern crate rlp;
 extern crate hex;
 
 extern crate ethabi;
-use self::ethabi::ethereum_types::FromDecStrErr;
 use self::ethabi::ethereum_types::Address;
+use self::ethabi::ethereum_types::FromDecStrErr;
 use k256::ecdsa::SigningKey;
 use std::{
     collections::HashMap,

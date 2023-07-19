@@ -1,9 +1,6 @@
 mod private_key;
 pub use self::private_key::WalletError;
 
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
-mod yubi;
-
 use crate::{to_eip155_v, Signer};
 extern crate ethers_core;
 use self::ethers_core::{
@@ -12,13 +9,11 @@ use self::ethers_core::{
         elliptic_curve::FieldBytes,
         Secp256k1,
     },
-    utils::hash_message,
     types::Signature,
+    utils::hash_message,
 };
 extern crate ethabi;
-use self::ethabi::ethereum_types::{
-    Address, H256, U256,
-};
+use self::ethabi::ethereum_types::{Address, H256, U256};
 
 use std::fmt;
 
@@ -105,11 +100,12 @@ impl<D: Sync + Send + PrehashSigner<(RecoverableSignature, RecoveryId)>> Signer 
 }
 
 impl<D: PrehashSigner<(RecoverableSignature, RecoveryId)>> Wallet<D> {
-
     /// Signs the provided hash.
     pub fn sign_hash(&self, hash: H256) -> Result<Signature, WalletError> {
-        let (recoverable_sig, recovery_id) = self.signer.sign_prehash(hash.as_ref())
-        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
+        let (recoverable_sig, recovery_id) = self
+            .signer
+            .sign_prehash(hash.as_ref())
+            .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
 
         let v = u8::from(recovery_id) as u64 + 27;
 

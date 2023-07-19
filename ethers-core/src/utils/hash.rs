@@ -1,6 +1,6 @@
 //! Various utilities for manipulating Ethereum related data.
-extern crate tiny_keccak;
 extern crate ethabi;
+extern crate tiny_keccak;
 use self::ethabi::ethereum_types::H256;
 use self::tiny_keccak::{Hasher, Keccak};
 

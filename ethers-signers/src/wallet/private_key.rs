@@ -4,11 +4,11 @@ use super::Wallet;
 extern crate ethers_core;
 use self::ethers_core::{
     k256::ecdsa::{self, SigningKey},
-    utils::secret_key_to_address
+    utils::secret_key_to_address,
 };
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
-use std::{str::FromStr, convert::TryFrom};
+use std::{convert::TryFrom, str::FromStr};
 extern crate thiserror;
 use self::thiserror::Error;
 
@@ -32,7 +32,7 @@ impl Wallet<SigningKey> {
     /// Creates a new Wallet instance from a raw scalar value (big endian).
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, WalletError> {
         let signer = SigningKey::from_bytes(bytes.into())
-        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
+            .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
         let address = secret_key_to_address(&signer);
         Ok(Self { signer, address, chain_id: 1 })
     }
@@ -40,9 +40,9 @@ impl Wallet<SigningKey> {
 
 impl PartialEq for Wallet<SigningKey> {
     fn eq(&self, other: &Self) -> bool {
-        self.signer.to_bytes().eq(&other.signer.to_bytes()) &&
-            self.address == other.address &&
-            self.chain_id == other.chain_id
+        self.signer.to_bytes().eq(&other.signer.to_bytes())
+            && self.address == other.address
+            && self.chain_id == other.chain_id
     }
 }
 
@@ -73,11 +73,11 @@ impl FromStr for Wallet<SigningKey> {
         let src = hex::decode(src)?;
 
         if src.len() != 32 {
-            return Err(WalletError::HexError(hex::FromHexError::InvalidStringLength))
+            return Err(WalletError::HexError(hex::FromHexError::InvalidStringLength));
         }
 
         let sk = SigningKey::from_bytes(src.as_slice().into())
-        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
+            .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
         Ok(sk.into())
     }
 }
@@ -159,5 +159,4 @@ mod tests {
         assert_eq!(wallet.chain_id, wallet_from_bytes.chain_id);
         assert_eq!(wallet.signer, wallet_from_bytes.signer);
     }
-
 }

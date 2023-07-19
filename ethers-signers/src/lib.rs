@@ -8,44 +8,12 @@ pub use wallet::{Wallet, WalletError};
 /// A wallet instantiated with a locally stored private key
 pub type LocalWallet = Wallet<ethers_core::k256::ecdsa::SigningKey>;
 
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
-/// A wallet instantiated with a YubiHSM
-pub type YubiWallet = Wallet<yubihsm::ecdsa::Signer<ethers_core::k256::Secp256k1>>;
-
-#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
-mod ledger;
-#[cfg(all(feature = "ledger", not(target_arch = "wasm32")))]
-pub use ledger::{
-    app::LedgerEthereum as Ledger,
-    types::{DerivationType as HDPath, LedgerError},
-};
-
-#[cfg(all(feature = "trezor", not(target_arch = "wasm32")))]
-mod trezor;
-#[cfg(all(feature = "trezor", not(target_arch = "wasm32")))]
-pub use trezor::{
-    app::TrezorEthereum as Trezor,
-    types::{DerivationType as TrezorHDPath, TrezorError},
-};
-
-#[cfg(all(feature = "yubihsm", not(target_arch = "wasm32")))]
-pub use yubihsm;
-
-#[cfg(feature = "aws")]
-mod aws;
-#[cfg(feature = "aws")]
-pub use aws::{AwsSigner, AwsSignerError};
-
 extern crate ethers_core;
-use self::ethers_core::types::{
-    Signature,
-};
+use self::ethers_core::types::Signature;
 use std::error::Error;
 
 extern crate ethabi;
-use self::ethabi::ethereum_types::{
-    Address
-};
+use self::ethabi::ethereum_types::Address;
 
 /// Applies [EIP155](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md)
 pub fn to_eip155_v<T: Into<u8>>(recovery_id: T, chain_id: u64) -> u64 {
