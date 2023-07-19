@@ -15,8 +15,8 @@ use self::thiserror::Error;
 #[derive(Error, Debug)]
 /// Error thrown by the Wallet module
 pub enum WalletError {
-    #[error(transparent)]
-    EcdsaError(#[from] ecdsa::Error),
+    #[error("ecdsa error: {0}")]
+    EcdsaError(String),
     /// Error propagated from the hex crate.
     #[error(transparent)]
     HexError(#[from] hex::FromHexError),
@@ -31,7 +31,8 @@ pub enum WalletError {
 impl Wallet<SigningKey> {
     /// Creates a new Wallet instance from a raw scalar value (big endian).
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, WalletError> {
-        let signer = SigningKey::from_bytes(bytes.into())?;
+        let signer = SigningKey::from_bytes(bytes.into())
+        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
         let address = secret_key_to_address(&signer);
         Ok(Self { signer, address, chain_id: 1 })
     }
@@ -75,7 +76,8 @@ impl FromStr for Wallet<SigningKey> {
             return Err(WalletError::HexError(hex::FromHexError::InvalidStringLength))
         }
 
-        let sk = SigningKey::from_bytes(src.as_slice().into())?;
+        let sk = SigningKey::from_bytes(src.as_slice().into())
+        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
         Ok(sk.into())
     }
 }

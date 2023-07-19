@@ -15,6 +15,7 @@ all-features = true
 [dependencies]
 ethers-core = { path = "../ethers-core" }
 ethabi = { version = "18.0.0", default-features = false, features = ["full-serde", "rlp"] }
+#getrandom = { version = "0.2", features = ["js"] }
 
 # crypto
 elliptic-curve = { version = "0.13.4", default-features = false }

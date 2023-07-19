@@ -22,9 +22,10 @@ arrayvec = { version = "0.7", default-features = false }
 # crypto
 elliptic-curve = { version = "0.13.4", default-features = false }
 generic-array = { version = "0.14.7", default-features = false }
-k256 = { version = "0.13.1", default-features = false, features = ["ecdsa", "std"] }
+k256 = { version = "0.13.1", default-features = false, features = ["ecdsa"] }
 tiny-keccak = { version = "2.0.2", default-features = false }
 #rand = "0.8"
+#getrandom = { version = "0.2", features = ["js"] }
 
 # misc
 serde = "1.0"

@@ -108,7 +108,8 @@ impl<D: PrehashSigner<(RecoverableSignature, RecoveryId)>> Wallet<D> {
 
     /// Signs the provided hash.
     pub fn sign_hash(&self, hash: H256) -> Result<Signature, WalletError> {
-        let (recoverable_sig, recovery_id) = self.signer.sign_prehash(hash.as_ref())?;
+        let (recoverable_sig, recovery_id) = self.signer.sign_prehash(hash.as_ref())
+        .map_err(|e| WalletError::EcdsaError(e.to_string()))?;
 
         let v = u8::from(recovery_id) as u64 + 27;
 

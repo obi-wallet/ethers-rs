@@ -8,7 +8,7 @@ use k256::elliptic_curve::{consts::U32, sec1::ToEncodedPoint};
 use k256::sha2::digest::generic_array::GenericArray;
 use k256::{
     ecdsa::{
-        Error as K256SignatureError, RecoveryId, Signature as RecoverableSignature,
+        RecoveryId, Signature as RecoverableSignature,
         Signature as K256Signature, VerifyingKey,
     },
     PublicKey as K256PublicKey,
@@ -35,11 +35,10 @@ pub enum SignatureError {
     #[error("Signature verification failed. Expected {0}, got {1}")]
     VerificationError(Address, Address),
     /// Internal error during signature recovery
-    #[error(transparent)]
-    K256Error(#[from] K256SignatureError),
-    /// Error in recovering public key from signature
     #[error("Public key recovery error")]
     RecoveryError,
+    #[error("k256 error: {0}")]
+    K256Error(String),
 }
 
 /// Recovery message data.
@@ -108,7 +107,9 @@ impl Signature {
             message_hash.as_ref(),
             &recoverable_sig,
             recovery_id,
-        )?;
+        ).map_err(|e| {
+            SignatureError::K256Error(e.to_string())
+        })?;
 
         let public_key = K256PublicKey::from(&verify_key);
         let public_key = public_key.to_encoded_point(/* compress = */ false);
@@ -128,7 +129,10 @@ impl Signature {
             self.s.to_big_endian(&mut s_bytes);
             let gar: &GenericArray<u8, U32> = GenericArray::from_slice(&r_bytes);
             let gas: &GenericArray<u8, U32> = GenericArray::from_slice(&s_bytes);
-            K256Signature::from_scalars(*gar, *gas)?
+            K256Signature::from_scalars(*gar, *gas)
+            .map_err(|e| {
+                SignatureError::K256Error(e.to_string())
+            })?
         };
 
         Ok((signature, recovery_id))
