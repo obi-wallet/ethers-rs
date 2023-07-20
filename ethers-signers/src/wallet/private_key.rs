@@ -3,11 +3,10 @@ use super::Wallet;
 
 extern crate ethers_core;
 use self::ethers_core::{
-    k256::ecdsa::{self, SigningKey},
+    k256::ecdsa::{SigningKey},
     utils::secret_key_to_address,
 };
-#[cfg(not(target_arch = "wasm32"))]
-use std::path::Path;
+
 use std::{convert::TryFrom, str::FromStr};
 extern crate thiserror;
 use self::thiserror::Error;

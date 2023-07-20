@@ -11,11 +11,7 @@ extern crate ethabi;
 use self::ethabi::ethereum_types::Address;
 use self::ethabi::ethereum_types::FromDecStrErr;
 use k256::ecdsa::SigningKey;
-use std::{
-    collections::HashMap,
-    convert::{TryFrom, TryInto},
-    fmt,
-};
+
 extern crate thiserror;
 use self::thiserror::Error;
 
