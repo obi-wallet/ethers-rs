@@ -2,10 +2,7 @@
 use super::Wallet;
 
 extern crate ethers_core;
-use self::ethers_core::{
-    k256::ecdsa::{SigningKey},
-    utils::secret_key_to_address,
-};
+use self::ethers_core::{k256::ecdsa::SigningKey, utils::secret_key_to_address};
 
 use std::{convert::TryFrom, str::FromStr};
 extern crate thiserror;

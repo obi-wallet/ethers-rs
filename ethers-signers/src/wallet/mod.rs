@@ -1,7 +1,7 @@
 mod private_key;
 pub use self::private_key::WalletError;
 
-use crate::{Signer};
+use crate::Signer;
 extern crate ethers_core;
 use self::ethers_core::{
     k256::{
